@@ -513,6 +513,434 @@ query liftsAndTrails {
 }
 ```
 
+#### 条件付きクエリ
+
+```cmd
+query closedLifts {
+  allLifts(status: CLOSED){
+    name
+    status
+  }
+}
+```
+
+レスポンスの例
+
+```json
+{
+  "data": {
+    "allLifts": [
+      {
+        "name": "Summit",
+        "status": "CLOSED"
+      },
+      {
+        "name": "Western States",
+        "status": "CLOSED"
+      }
+    ]
+  }
+}
+```
+
+id が jazz-cat のデータを取得するクエリ
+
+```cmd
+query jazzCatStatus {
+  Lift(id: "jazz-cat"){
+    name
+    status
+    night
+    elevationGain
+  }
+}
+```
+
+レスポンスの例
+
+```json
+{
+  "data": {
+    "Lift": {
+      "name": "Jazz Cat",
+      "status": "OPEN",
+      "night": false,
+      "elevationGain": 1230
+    }
+  }
+}
+```
+
+#### フラグメントを活用したクエリ
+
+```cmd
+# Lift型のフラグメント
+fragment lifeInfo on Lift {
+  name
+  status
+  capacity
+  night
+  elevationGain
+}
+
+# クエリ
+query jazzCatStatus {
+  Lift(id: "jazz-cat"){
+    ...lifeInfo
+    trailAccess {
+      name
+      difficulty
+    }
+  }
+  Trail(id: "river-run") {
+    name
+    difficulty
+    accessedByLifts {
+      ...lifeInfo
+    }
+  }
+}
+```
+
+レスポンス結果
+
+```json
+{
+  "data": {
+    "Lift": {
+      "name": "Jazz Cat",
+      "status": "OPEN",
+      "capacity": 2,
+      "night": false,
+      "elevationGain": 1230,
+      "trailAccess": [
+        {
+          "name": "Goosebumps",
+          "difficulty": "advanced"
+        },
+        {
+          "name": "River Run",
+          "difficulty": "intermediate"
+        },
+        {
+          "name": "Duck's Revenge",
+          "difficulty": "intermediate"
+        },
+        {
+          "name": "Cape Cod",
+          "difficulty": "intermediate"
+        },
+        {
+          "name": "Grandma",
+          "difficulty": "expert"
+        },
+        {
+          "name": "Wild Child",
+          "difficulty": "advanced"
+        },
+        {
+          "name": "Old Witch",
+          "difficulty": "expert"
+        }
+      ]
+    },
+    "Trail": {
+      "name": "River Run",
+      "difficulty": "intermediate",
+      "accessedByLifts": [
+        {
+          "name": "Jazz Cat",
+          "status": "OPEN",
+          "capacity": 2,
+          "night": false,
+          "elevationGain": 1230
+        }
+      ]
+    }
+  }
+}
+```
+
+#### ユニオン型を活用したクエリ
+
+```cmd
+#フラグメント
+fragment workout on Workout {
+  name
+  reps
+}
+
+# フラグメント2
+fragment study on StudyGroup {
+  name
+  subject
+  students
+}
+
+#クエリ
+query today {
+  agenda {
+    ...workout
+    ...study
+  }
+}
+```
+
+#### 書き込み操作する場合(ミューテーションを利用する)
+
+「Jazz-cat」リフトの稼働状況を更新するクエリ
+
+```cmd
+mutation closedLift {
+  setLiftStatus(id: "jazz-cat" status: CLOSED) {
+    name
+    status
+  }
+}
+```
+
+レスポンス
+
+```json
+{
+  "data": {
+    "setLiftStatus": {
+      "name": "Jazz Cat",
+      "status": "CLOSED"
+    }
+  }
+}
+```
+
+クエリ引数に変数を利用した場合
+
+```cmd
+mutation crateSong($title:String! $numberOne:Int $by:String!) {
+  addSong(title: $title, numberOne: $numberOne, performerName: $by) {
+    id
+    title
+    numberOne
+  }
+}
+```
+
+#### サブスクリプションを利用したクエリ
+
+データを監視して更新されたタイミングで取得する
+
+```cmd
+# サブスクリプション
+subscription {
+  liftStatusChange {
+    name
+    capacity
+    status
+  }
+}
+
+```
+
+#### イントロスペクション
+
+API スキーマを取得するクエリ
+
+```cmd
+# イントロスペクション
+
+query {
+  __schema {
+    types {
+      name
+      description
+    }
+  }
+}
+
+```
+
+レスポンス
+
+```json
+{
+  "data": {
+    "__schema": {
+      "types": [
+        {
+          "name": "Lift",
+          "description": "A `Lift` is a chairlift, gondola, tram, funicular, pulley, rope tow, or other means of ascending a mountain."
+        },
+        {
+          "name": "ID",
+          "description": "The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `\"4\"`) or integer (such as `4`) input value will be accepted as an ID."
+        },
+        {
+          "name": "String",
+          "description": "The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text."
+        },
+        {
+          "name": "Int",
+          "description": "The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1."
+        },
+        {
+          "name": "Boolean",
+          "description": "The `Boolean` scalar type represents `true` or `false`."
+        },
+        {
+          "name": "Trail",
+          "description": "A `Trail` is a run at a ski resort"
+        },
+        {
+          "name": "LiftStatus",
+          "description": "An enum describing the options for `LiftStatus`: `OPEN`, `CLOSED`, `HOLD`"
+        },
+        {
+          "name": "TrailStatus",
+          "description": "An enum describing the options for `TrailStatus`: `OPEN`, `CLOSED`"
+        },
+        {
+          "name": "SearchResult",
+          "description": "This union type returns one of two types: a `Lift` or a `Trail`. When we search for a letter, we'll return a list of either `Lift` or `Trail` objects."
+        },
+        {
+          "name": "Query",
+          "description": null
+        },
+        {
+          "name": "Mutation",
+          "description": null
+        },
+        {
+          "name": "Subscription",
+          "description": null
+        },
+        {
+          "name": "CacheControlScope",
+          "description": null
+        },
+        {
+          "name": "Upload",
+          "description": "The `Upload` scalar type represents a file upload."
+        },
+        {
+          "name": "__Schema",
+          "description": "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations."
+        },
+        {
+          "name": "__Type",
+          "description": "The fundamental unit of any GraphQL Schema is the type. There are many kinds of types in GraphQL as represented by the `__TypeKind` enum.\n\nDepending on the kind of a type, certain fields describe information about that type. Scalar types provide no information beyond a name, description and optional `specifiedByUrl`, while Enum types provide their values. Object and Interface types provide the fields they describe. Abstract types, Union and Interface, provide the Object types possible at runtime. List and NonNull types compose other types."
+        },
+        {
+          "name": "__TypeKind",
+          "description": "An enum describing what kind of type a given `__Type` is."
+        },
+        {
+          "name": "__Field",
+          "description": "Object and Interface types are described by a list of Fields, each of which has a name, potentially a list of arguments, and a return type."
+        },
+        {
+          "name": "__InputValue",
+          "description": "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value."
+        },
+        {
+          "name": "__EnumValue",
+          "description": "One possible value for a given Enum. Enum values are unique values, not a placeholder for a string or numeric value. However an Enum value is returned in a JSON response as a string."
+        },
+        {
+          "name": "__Directive",
+          "description": "A Directive provides a way to describe alternate runtime execution and type validation behavior in a GraphQL document.\n\nIn some cases, you need to provide options to alter GraphQL's execution behavior in ways field arguments will not suffice, such as conditionally including or skipping a field. Directives provide this by describing additional information to the executor."
+        },
+        {
+          "name": "__DirectiveLocation",
+          "description": "A Directive can be adjacent to many parts of the GraphQL language, a __DirectiveLocation describes one such possible adjacencies."
+        }
+      ]
+    }
+  }
+}
+```
+
+Lift 型の詳細を知りたい時のクエリ
+
+```cmd
+# イントロスペクション
+
+query liftDetails{
+  __type(name: "Lift") {
+    name
+    fields {
+      name
+      description
+      type {
+        name
+      }
+    }
+  }
+}
+```
+
+レスポンス
+
+```json
+{
+  "data": {
+    "__type": {
+      "name": "Lift",
+      "fields": [
+        {
+          "name": "id",
+          "description": "The unique identifier for a `Lift` (id: \"panorama\")",
+          "type": {
+            "name": null
+          }
+        },
+        {
+          "name": "name",
+          "description": "The name of a `Lift`",
+          "type": {
+            "name": null
+          }
+        },
+        {
+          "name": "status",
+          "description": "The current status for a `Lift`: `OPEN`, `CLOSED`, `HOLD`",
+          "type": {
+            "name": "LiftStatus"
+          }
+        },
+        {
+          "name": "capacity",
+          "description": "The number of people that a `Lift` can hold",
+          "type": {
+            "name": null
+          }
+        },
+        {
+          "name": "night",
+          "description": "A boolean describing whether a `Lift` is open for night skiing",
+          "type": {
+            "name": null
+          }
+        },
+        {
+          "name": "elevationGain",
+          "description": "The number of feet in elevation that a `Lift` ascends",
+          "type": {
+            "name": null
+          }
+        },
+        {
+          "name": "trailAccess",
+          "description": "A list of trails that this `Lift` serves",
+          "type": {
+            "name": null
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
 #### 参考文献
 
 1. <a href="https://www.oreilly.co.jp/books/9784873118932/">初めての GraphQL</a>
