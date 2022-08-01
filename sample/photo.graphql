@@ -1,5 +1,7 @@
 schema {
   query: Query
+  mutation: Mutation
+  subscription: Subscription
 }
 
 scalar DateTime
@@ -12,11 +14,53 @@ enum PhotoCategory {
   GRAPHIC
 }
 
+enum SortDirection {
+  ASCENDING
+  DESCENDING
+}
+
+enum SortablePhotoField {
+  name
+  description
+  category
+  created
+}
+
+# 入力型
+input PostPhotoInput {
+  name: String!
+  description: String
+  category: PhotoCategory=PORTRAIT
+}
+
+input PhotoFilter {
+  category: PhotoCategory
+  createdBetween: DateRange
+  taggedUsers: [ID!]
+  searchIndex: String
+}
+
+input DateRange {
+  start: DateTime!
+  end: DateTime!
+}
+
+input DataPage {
+  first: Int = 25
+  start: Int = 0
+}
+
+input DataSort {
+  sort: SortDirection = DESCENDING
+  sortby: SortablePhotoField = created
+}
+
 type User {
   githubLogin: ID!
   name: String
   avatar: String
-  postedPhotos: [Photo!]!
+  postedPhotos(filter: PhotoFilter paging: DataPage sorting: DataSort): [Photo!]!
+  inPhotos(filter: PhotoFilter paging: DataPage sorting: DataSort): [Photo!]!
 }
 
 type Photo {
@@ -27,11 +71,80 @@ type Photo {
   created: DateTime!
   category: PhotoCategory!
   postedBy: User!
+  taggedUsers(sorting: DataSort): [User!]!
 }
 
+# 返却型
+type AuthPayload {
+  user: User!
+  token: String!
+}
+
+# サブスクリプション
+type Subscription {
+  newPhoto(category: PhotoCategory): Photo!
+  newUser: User!
+}
+
+# Queryのタイプを定義
 type Query {
   totalPhotos: Int!
-  allPhotos: [Photo!]!
+  allPhotos(filter: PhotoFilter paging: DataPage sorting: DataSort): [Photo!]!
   totalUsers: Int!
-  allUsers: [User!]!
+  allUsers(paging: DataPage sorting: DataSort): [User!]!
+}
+
+# ミューテーションのタイプを定義
+type Mutation {
+  postPhoto(input: PostPhotoInput!): Photo!
+  githubAuth(code: String!): AuthPayload!
+}
+
+# ミューテーション
+mutation {
+  postPhoto(name: "Sending the Palisades") {
+    id
+    url
+    created
+    postedBy {
+      name
+    }
+  }
+}
+
+# クエリの定義
+Query {
+  allPhotos(
+    sort: SortDirection = DESCENDING
+    sortby: SortablePhotoField = created
+  ): [Photo!]!
+}
+
+# クエリ
+query {
+  allPhotos(sortby: name) {
+    name
+    url
+  }
+}
+
+# 複雑な条件のクエリ
+query getPhotos($filter:PhotoFilter $page: DataPage $sort: DataSort) {
+  allPhotos(filter: $filter paging: $page sorting: $sort) {
+    id
+    name
+    url
+  }
+}
+
+# サブスクリプション用のクエリ
+subscription {
+  newPhoto(category: "ACTION") {
+    id
+    name
+    url
+    postedBy {
+      name
+    }
+  }
 }

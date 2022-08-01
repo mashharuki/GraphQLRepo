@@ -1,0 +1,41 @@
+"""
+最低一度はGitHubで許可されたユーザー
+"""
+type User {
+  """
+  ユーザーの一意のGutHubログインID
+  """
+  githubLogin: ID!
+
+  """
+  ユーザーの姓名
+  """
+  name: String
+
+  """
+  ユーザーのGitHubプロフィール画像のURL
+  """
+  avatar: String
+
+  """
+  このユーザーが投稿した全写真
+  """
+  postedPhotos: [Photo!]!
+
+  """
+  このユーザーが含まれる全写真
+  """
+  inPhotos: [Photo!]!
+}
+
+"""
+postPhotoで送信される入力型
+"""
+input PostPhotoInput {
+  "新しい写真の名前"
+  name: String!
+  "(optional) 写真の簡単な説明"
+  description: String
+  "(optional) 写真のカテゴリ"
+  category: PhotoCategory = PORTRAIT
+}
