@@ -1,0 +1,10 @@
+"""
+A user who has been authorized by GitHub at least once
+"""
+
+"""
+A root type showing all the queries (READ)
+"""
+type Query {
+      totalPhotos: Int!
+}

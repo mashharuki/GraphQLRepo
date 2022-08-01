@@ -941,6 +941,14 @@ query liftDetails{
 }
 ```
 
+## Apollo Server により GraphQL サーバーを構築する場合
+
+`npm i apollo-server graphql nodemon`
+
+## Apollo Server 起動例
+
+<img src="./docs/assets/server.png">
+
 #### 参考文献
 
 1. <a href="https://www.oreilly.co.jp/books/9784873118932/">初めての GraphQL</a>
