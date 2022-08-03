@@ -1,5 +1,5 @@
-// const express = require('express')
-const { ApolloServer } = require('apollo-server')
+const express = require('express')
+const { ApolloServer } = require('apollo-server-express')
 const { readFileSync } = require('fs');
 const { GraphQLScalarType } = require('graphql')
 
@@ -148,14 +148,32 @@ const resolvers = {
       }),
 }
 
-// create server instance
-const server = new ApolloServer({
-      typeDefs,
-      resolvers
-});
+// server
+var app = express();
+
+var server;
+
+/**
+ * apollo server function
+ */
+async function startServer() {
+      // create server instance
+      server = new ApolloServer({
+            typeDefs,
+            resolvers
+      });
+      await server.start();
+      // add middleware to server
+      server.applyMiddleware({ app });
+}
+
+// call function
+startServer()
+
+// config of route
+app.get('/', (req, res) => res.end(`Welcome to the PhotoShare API`));
 
 // start Web server
-server
-      .listen()
-      .then(({url}) => console.log(`GraphQL Service running on ${url}`))
-
+app.listen({ port: 4000 }, () => {
+      console.log(`GraphQL Service running on port 4000 ${server.graphqlPath}`)
+});
