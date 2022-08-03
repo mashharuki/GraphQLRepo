@@ -1,10 +1,46 @@
-"""
-A user who has been authorized by GitHub at least once
-"""
+scalar DateTime
+
+type Photo {
+  id: ID!
+  url: String!
+  name: String!
+  description: String
+  category: PhotoCategory!
+  postedBy: User!
+  taggedUsers: [User!]!
+  created: DateTime!
+}
+
+type User {
+  githubLogin: ID!
+  name: String
+  avatar: String
+  postedPhotos: [Photo!]!
+  inPhotos: [Photo!]!
+}
+
+enum PhotoCategory {
+  SELFIE
+  PORTRAIT
+  ACTION
+  LANDSCAPE
+  GRAPHIC
+}
+
+input PostPhotoInput {
+  name: String!
+  description: String
+  category: PhotoCategory = PORTRAIT
+}
 
 """
 A root type showing all the queries (READ)
 """
 type Query {
-      totalPhotos: Int!
+  totalPhotos: Int!
+  allPhotos: [Photo!]!
+}
+
+type Mutation {
+  postPhoto(input: PostPhotoInput!): Photo!
 }

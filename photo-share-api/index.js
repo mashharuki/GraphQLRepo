@@ -1,58 +1,12 @@
 const express = require('express')
 const { ApolloServer } = require('apollo-server-express')
+const expressPlayground = require('graphql-playground-middleware-express').default
 const { readFileSync } = require('fs');
 const { GraphQLScalarType } = require('graphql')
+//const resolvers = require('./resolvers');
 
 // read GraphQL config file
-// var typeDefs = readFileSync('./typeDefs.graphql', 'UTF-8');
-var typeDefs = `
-      scalar DateTime
-
-      # define Photo Type
-      type Photo {
-            id: ID!
-            url: String!
-            name: String!
-            description: String
-            category: PhotoCategory!
-            postedBy: User!
-            taggedUsers: [User!]!
-            created: DateTime!
-      }
-
-      type User {
-            githubLogin: ID!
-            name: String
-            avatar: String
-            postedPhotos: [Photo!]!
-            inPhotos: [Photo!]! 
-      }
-
-      # PhotoCategory
-      enum PhotoCategory{
-            SELFIE
-            PORTRAIT
-            ACTION
-            LANDSCAPE
-            GRAPHIC
-      }
-
-      # input type
-      input PostPhotoInput {
-            name: String!
-            description: String
-            category: PhotoCategory=PORTRAIT
-      }
-
-      type Query {
-            totalPhotos: Int!
-            allPhotos: [Photo!]!
-      }
-
-      type Mutation {
-            postPhoto(input: PostPhotoInput!): Photo!
-      }
-`
+var typeDefs = readFileSync('./typeDefs.graphql', 'UTF-8');
 
 // id
 var _id = 0;
@@ -153,25 +107,18 @@ var app = express();
 
 var server;
 
-/**
- * apollo server function
- */
-async function startServer() {
-      // create server instance
-      server = new ApolloServer({
-            typeDefs,
-            resolvers
-      });
-      await server.start();
-      // add middleware to server
-      server.applyMiddleware({ app });
-}
+// create server instance
+server = new ApolloServer({
+      typeDefs,
+      resolvers
+});
 
-// call function
-startServer()
+// add middleware to server
+server.applyMiddleware({ app });
 
 // config of route
 app.get('/', (req, res) => res.end(`Welcome to the PhotoShare API`));
+app.get('/playground', expressPlayground({ endpoint: '/graphql' }))
 
 // start Web server
 app.listen({ port: 4000 }, () => {

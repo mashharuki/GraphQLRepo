@@ -949,6 +949,10 @@ query liftDetails{
 
 <img src="./docs/assets/server.png">
 
+## Playground の開き方
+
+http://localhost:4000/playground
+
 #### 参考文献
 
 1. <a href="https://www.oreilly.co.jp/books/9784873118932/">初めての GraphQL</a>
@@ -957,3 +961,4 @@ query liftDetails{
 4. <a href="https://swapi.dev/">SWAPI.dev</a>
 5. [SWAPI](https://graphql.org/swapi-graphql/)
 6. [Snowtooth API](http://snowtooth.moonhighway.com)
+7. [You must `await server.start()` before calling `server.applyMiddleware()`の解決方法](https://qiita.com/kajima/items/2405a44a2c6f14de7919)
