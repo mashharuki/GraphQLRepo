@@ -951,7 +951,28 @@ query liftDetails{
 
 ## Playground の開き方
 
+`npm run start`
+
 http://localhost:4000/playground
+
+## mongoDB の起動方法
+
+`brew services start mongodb-community@6.0`
+
+```cmd
+==> Successfully started `mongodb-community` (label: homebrew.mxcl.mongodb-community)
+```
+
+デフォルトでは次の URL でアクセスできる。
+`http://localhost:27017/`
+
+## mongoDB の停止方法
+
+`brew services stop mongodb-community@6.0`
+
+## mongod の使い方
+
+` mongod --version`
 
 #### 参考文献
 
@@ -962,3 +983,4 @@ http://localhost:4000/playground
 5. [SWAPI](https://graphql.org/swapi-graphql/)
 6. [Snowtooth API](http://snowtooth.moonhighway.com)
 7. [You must `await server.start()` before calling `server.applyMiddleware()`の解決方法](https://qiita.com/kajima/items/2405a44a2c6f14de7919)
+8. [MongoDB の公式サイト](https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-os-x/)

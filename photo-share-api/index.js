@@ -4,6 +4,8 @@ const expressPlayground = require('graphql-playground-middleware-express').defau
 const { readFileSync } = require('fs');
 const { GraphQLScalarType } = require('graphql')
 //const resolvers = require('./resolvers');
+const { MongoClient } = require('mongodb');
+require('dotenv').config();
 
 // read GraphQL config file
 var typeDefs = readFileSync('./typeDefs.graphql', 'UTF-8');
@@ -56,8 +58,23 @@ var d = new Date(`4/18/2018`)
 const resolvers = {
       // query
       Query: {
-            totalPhotos: () => photos.length,
-            allPhotos: () => photos
+            totalPhotos: (parent, args, { db }) => 
+                  db.collection('photos')
+                  .estimatedDocumentCount(),
+
+            allPhotos: (parent, args, { db }) =>
+                  db.collection('photos')
+                  .find()
+                  .toArray(),
+            
+            totalUsers: (parent, args, { db }) =>
+                  db.collection('users')
+                  .estimatedDocumentCount(),
+            
+            allUsers: (parent, args, { db }) =>
+                  db.collection('users')
+                  .find()
+                  .toArray(),
       },
       // mutaition
       Mutation: {
@@ -102,25 +119,56 @@ const resolvers = {
       }),
 }
 
-// server
-var app = express();
+/**
+ * sever start
+ */
+async function start() {
+      // server
+      var app = express();
 
-var server;
+      var server;
+      var db;
+      // DB name
+      const MONGO_DB = process.env.DB_HOST;
 
-// create server instance
-server = new ApolloServer({
-      typeDefs,
-      resolvers
-});
+      try {
+            // create DB object
+            const client = await MongoClient.connect(MONGO_DB, { 
+                  useNewUrlParser: true 
+            });
+            // connect to DB
+            db = client.db();
+      } catch (error) {
+            console.log(`
+            
+              Mongo DB Host not found!
+              please add DB_HOST environment variable to .env file
+              exiting...
+               
+            `)
+            process.exit(1)
+      }
 
-// add middleware to server
-server.applyMiddleware({ app });
+      // create server instance
+      server = new ApolloServer({
+            typeDefs,
+            resolvers,
+            context: { db },
+      });
 
-// config of route
-app.get('/', (req, res) => res.end(`Welcome to the PhotoShare API`));
-app.get('/playground', expressPlayground({ endpoint: '/graphql' }))
+      // add middleware to server
+      server.applyMiddleware({ app });
 
-// start Web server
-app.listen({ port: 4000 }, () => {
-      console.log(`GraphQL Service running on port 4000 ${server.graphqlPath}`)
-});
+      // config of route
+      app.get('/', (req, res) => res.end(`Welcome to the PhotoShare API`));
+      app.get('/playground', expressPlayground({ endpoint: '/graphql' }))
+
+      // start Web server
+      app.listen({ port: 4000 }, () => {
+            console.log(`GraphQL Service running on port 4000 ${server.graphqlPath}`)
+      });
+}
+
+// execute function
+start();
+

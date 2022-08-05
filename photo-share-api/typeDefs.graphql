@@ -39,6 +39,14 @@ A root type showing all the queries (READ)
 type Query {
   totalPhotos: Int!
   allPhotos: [Photo!]!
+  """
+  A query that returns the total number of users
+  """
+  totalUsers: Int!
+  """
+  A query that returns all the users
+  """
+  allUsers: [User!]!
 }
 
 type Mutation {
