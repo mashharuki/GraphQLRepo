@@ -19,6 +19,20 @@ type User {
   inPhotos: [Photo!]!
 }
 
+"""
+A Custom type for Auth Object
+"""
+type AuthPayload {
+  """
+  A jwt token returned after a successful auth
+  """
+  token: String!
+  """
+  A user that was authenticated
+  """
+  user: User!
+}
+
 enum PhotoCategory {
   SELFIE
   PORTRAIT
@@ -51,4 +65,14 @@ type Query {
 
 type Mutation {
   postPhoto(input: PostPhotoInput!): Photo!
+
+  """
+  A mutation to Authenticate a Github user
+  """
+  githubAuth(
+    """
+    A password or GitHub token
+    """
+    code: String!
+  ): AuthPayload!
 }

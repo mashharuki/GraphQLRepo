@@ -5,6 +5,7 @@ const { readFileSync } = require('fs');
 const { GraphQLScalarType } = require('graphql')
 //const resolvers = require('./resolvers');
 const { MongoClient } = require('mongodb');
+const { authorizeWithGithub } = require('./lib');
 require('dotenv').config();
 
 // read GraphQL config file
@@ -88,7 +89,39 @@ const resolvers = {
                   // add
                   photos.push(newPhoto)
                   return newPhoto
-            }
+            },
+
+            async githubAuth(parent, { code }, { db }) {
+                  // get accecctoken & account info
+                  let {
+                        message,
+                        access_token,
+                        avatar_url,
+                        login,
+                        name
+                  } = await authorizeWithGithub({
+                        client_id: process.env.CLIENT_ID,
+                        client_secret: process.env.CLIENT_SECRET,
+                        code
+                  })
+              
+                  if (message) {
+                        throw new Error(message)
+                  }
+                  // fix the user info
+                  let latestUserInfo = {
+                        name,
+                        githubLogin: login,
+                        githubToken: access_token,
+                        avatar: avatar_url
+                  }
+                  // mutate users info 
+                  const { ops:[user] } = await db
+                                          .collection('users')
+                                          .replaceOne({ githubLogin: login }, latestUserInfo, { upsert: true })
+              
+                  return { user, token: access_token }
+            },
       },
       Photo: {
             url: parent => `http://yoursite.com/img${parent.id}.jpg`,
