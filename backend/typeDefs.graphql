@@ -1,4 +1,5 @@
 scalar DateTime
+scalar Upload
 
 type Photo {
   id: ID!
@@ -17,6 +18,11 @@ type User {
   avatar: String
   postedPhotos: [Photo!]!
   inPhotos: [Photo!]!
+}
+
+type Subscription {
+  newPhoto: Photo!
+  newUser: User!
 }
 
 """
@@ -45,6 +51,7 @@ input PostPhotoInput {
   name: String!
   description: String
   category: PhotoCategory = PORTRAIT
+  file: Upload!
 }
 
 """

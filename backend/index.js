@@ -1,13 +1,15 @@
 const express = require('express')
-const { ApolloServer } = require('apollo-server-express')
+const { ApolloServer, PubSub } = require('apollo-server-express')
 const expressPlayground = require('graphql-playground-middleware-express').default
 const { readFileSync } = require('fs');
 const { GraphQLScalarType } = require('graphql')
 //const resolvers = require('./resolvers');
 const { MongoClient } = require('mongodb');
-const { authorizeWithGithub } = require('./lib');
+const { createServer } = require('http');
+const { authorizeWithGithub, uploadStream } = require('./lib');
 const fetch = require('node-fetch');
 require('dotenv').config();
+const path = require('path');
 
 // read GraphQL config file
 var typeDefs = readFileSync('./typeDefs.graphql', 'UTF-8');
@@ -82,7 +84,7 @@ const resolvers = {
       },
       // mutaition
       Mutation: {
-            async postPhoto(parent, args, { db, currentUser }) {
+            async postPhoto(parent, args, { db, currentUser, pubsub }) {
                   // check
                   if (!currentUser) {
                         throw new Error('only an authorized user can post a photo')
@@ -96,11 +98,20 @@ const resolvers = {
                   // insert
                   const { insertedIds } = await db.collection('photos').insert(newPhoto);
                   // get ID
-                  newPhoto.id = insertedIds[0]
+                  newPhoto.id = insertedIds[0];
+                  
+                  // path
+                  var toPath = path.join(__dirname, '..', 'assets', 'photos', `${newPhoto.id}.jpg`);
+                  const { stream } = await args.input.file;
+                  // call uploadStream function
+                  await uploadStream(stream, toPath);
+                  // publish
+                  pubsub.publish('photo-added', { newPhoto });
+
                   return newPhoto;
             },
 
-            async githubAuth(parent, { code }, { db }) {
+            async githubAuth(parent, { code }, { db, pubsub}) {
                   // get accecctoken & account info
                   let {
                         message,
@@ -125,14 +136,16 @@ const resolvers = {
                         avatar: avatar_url
                   }
                   // mutate users info 
-                  const { ops:[user] } = await db
+                  const { ops:[user], result  } = await db
                                           .collection('users')
                                           .replaceOne({ githubLogin: login }, latestUserInfo, { upsert: true })
               
+                  // publish
+                  result.upserted && pubsub.publish('user-added', { newUser: user });
                   return { user, token: access_token }
             },
 
-            addFakeUsers: async (parent, { count }, { db }) => {
+            addFakeUsers: async (parent, { count }, { db, pubsub }) => {
                   
                   var randomUserApi = `https://randomuser.me/api/?results=${count}`
                   // call api
@@ -146,6 +159,9 @@ const resolvers = {
                   }))
                   // insert
                   await db.collection('users').insert(users);
+                  // publish
+                  users.forEach(newUser => pubsub.publish('user-added', {newUser}))
+
                   return users;
             },
 
@@ -162,6 +178,14 @@ const resolvers = {
                         user
                   }
             }
+      },
+      Subscription: {
+            newPhoto: {
+                  subscribe: (parent, args, { pubsub }) => pubsub.asyncIterator('photo-added')
+            },
+            newUser: {
+                  subscribe: (parent, args, { pubsub }) => pubsub.asyncIterator('user-added')
+            },
       },
       Photo: {
             id: parent => parent.id || parent._id,
@@ -204,6 +228,8 @@ const resolvers = {
 async function start() {
       // server
       var app = express();
+      // pubsub instance
+      const pubsub = new PubSub();
 
       var server;
       var db;
@@ -232,10 +258,10 @@ async function start() {
       server = new ApolloServer({
             typeDefs,
             resolvers,
-            context: async ({ req }) => {
-                  const githubToken = req.headers.authorization
+            context: async ({ req, connection }) => {
+                  const githubToken = req ? req.headers.authorization : connection.context.Authorization;
                   const currentUser = await db.collection('users').findOne({ githubToken })
-                  return { db, currentUser }
+                  return { db, currentUser, pubsub }
             },
       });
 
@@ -246,8 +272,12 @@ async function start() {
       app.get('/', (req, res) => res.end(`Welcome to the PhotoShare API`));
       app.get('/playground', expressPlayground({ endpoint: '/graphql' }))
 
+      const httpServer = createServer(app);
+      // start websocket connection
+      server.installSubscriptionHandlers(httpServer);
+
       // start Web server
-      app.listen({ port: 4000 }, () => {
+      httpServer.listen({ port: 4000 }, () => {
             console.log(`GraphQL Service running on port 4000 ${server.graphqlPath}`)
       });
 }
