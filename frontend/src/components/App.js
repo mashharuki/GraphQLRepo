@@ -1,7 +1,7 @@
-//import { BrowserRouter } from 'react-router-dom'
-//import AuthorizedUser from './AuthorizedUser'
 import { gql } from '@apollo/client';
 import React from 'react';
+import { BrowserRouter } from 'react-router-dom';
+import AuthorizedUser from './AuthorizedUser';
 import Users from './Users';
 
 // GraphQL Query
@@ -25,7 +25,12 @@ export const ROOT_QUERY = gql`
  */
 function App() {
   return (
-    <Users/>
+    <BrowserRouter>
+      <div>
+        <AuthorizedUser/>
+        <Users/>
+      </div>
+    </BrowserRouter>
   );
 }
 
