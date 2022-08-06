@@ -2,7 +2,7 @@ import { ApolloProvider } from "@apollo/client";
 import ApolloClient from "apollo-boost";
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
+import App from './components/App';
 import './index.css';
 import reportWebVitals from './reportWebVitals';
 
