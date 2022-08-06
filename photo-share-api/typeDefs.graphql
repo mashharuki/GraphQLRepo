@@ -51,7 +51,17 @@ input PostPhotoInput {
 A root type showing all the queries (READ)
 """
 type Query {
+  """
+  A query that return the authenticated user from a token
+  """
+  me: User
+  """
+  A query that returns the total number of photos
+  """
   totalPhotos: Int!
+  """
+  A query that returns all the photos
+  """
   allPhotos: [Photo!]!
   """
   A query that returns the total number of users
@@ -64,6 +74,9 @@ type Query {
 }
 
 type Mutation {
+  """
+  A mutation to post a new photo
+  """
   postPhoto(input: PostPhotoInput!): Photo!
 
   """
@@ -75,4 +88,14 @@ type Mutation {
     """
     code: String!
   ): AuthPayload!
+
+  """
+  A mutation to add fake(mocked) users
+  """
+  addFakeUsers(count: Int = 1): [User!]!
+
+  """
+  A mutation to authenticate a fake user
+  """
+  fakeUserAuth(githubLogin: ID!): AuthPayload!
 }

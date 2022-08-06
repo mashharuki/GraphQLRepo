@@ -6,6 +6,7 @@ const { GraphQLScalarType } = require('graphql')
 //const resolvers = require('./resolvers');
 const { MongoClient } = require('mongodb');
 const { authorizeWithGithub } = require('./lib');
+const fetch = require('node-fetch');
 require('dotenv').config();
 
 // read GraphQL config file
@@ -59,6 +60,8 @@ var d = new Date(`4/18/2018`)
 const resolvers = {
       // query
       Query: {
+            me: (parent, args, { currentUser }) => currentUser,
+
             totalPhotos: (parent, args, { db }) => 
                   db.collection('photos')
                   .estimatedDocumentCount(),
@@ -79,16 +82,22 @@ const resolvers = {
       },
       // mutaition
       Mutation: {
-            postPhoto(parent, args) {
-                  // create new photo
-                  var newPhoto = {
-                        id: _id++,
+            async postPhoto(parent, args, { db, currentUser }) {
+                  // check
+                  if (!currentUser) {
+                        throw new Error('only an authorized user can post a photo')
+                  }
+
+                  const newPhoto = {
                         ...args.input,
+                        userID: currentUser.githubLogin,
                         created: new Date()
-                  };
-                  // add
-                  photos.push(newPhoto)
-                  return newPhoto
+                  }
+                  // insert
+                  const { insertedIds } = await db.collection('photos').insert(newPhoto);
+                  // get ID
+                  newPhoto.id = insertedIds[0]
+                  return newPhoto;
             },
 
             async githubAuth(parent, { code }, { db }) {
@@ -122,17 +131,54 @@ const resolvers = {
               
                   return { user, token: access_token }
             },
+
+            addFakeUsers: async (parent, { count }, { db }) => {
+                  
+                  var randomUserApi = `https://randomuser.me/api/?results=${count}`
+                  // call api
+                  var { results } = await fetch(randomUserApi).then(res => res.json())
+                  // users info
+                  var users = results.map(r => ({
+                        githubLogin: r.login.username,
+                        name: `${r.name.first} ${r.name.last}`,
+                        avatar: r.picture.thumbnail,
+                        githubToken: r.login.sha1
+                  }))
+                  // insert
+                  await db.collection('users').insert(users);
+                  return users;
+            },
+
+            async fakeUserAuth(parent, { githubLogin }, { db }) {
+                  // find user 
+                  var user = await db.collection('users').findOne({ githubLogin })
+              
+                  if (!user) {
+                        throw new Error(`Cannot find user with githubLogin "${githubLogin}"`)
+                  }     
+                  // token & user info
+                  return {
+                        token: user.githubToken,
+                        user
+                  }
+            }
       },
       Photo: {
-            url: parent => `http://yoursite.com/img${parent.id}.jpg`,
-            postedBy: parent => {
-                  return users.find(u => u.githubLogin === parent.githubLogin)
-            },
-            taggedUsers : parent => tags
-                                          .filter(tag => tag.photoID === parent.id)
-                                          .map(tag => tag.userID)
-                                          .map(userID => users.find(u => u.githubLogin === userID)),
-            
+            id: parent => parent.id || parent._id,
+            url: parent => `/img/photos/${parent.id}.jpg`,
+            postedBy: (parent, args, { db })  => db.collection('users').findOne({ githubLogin: parent.userID }),
+            taggedUsers: async (parent, args, { db }) => {           
+                  // get Array of tags
+                  const tags = await db.collection('tags').find().toArray()
+                  // login
+                  const logins = tags
+                      .filter(t => t.photoID === parent._id.toString())
+                      .map(t => t.githubLogin)
+                      
+                  return db.collection('users')
+                      .find({ githubLogin: { $in: logins }})
+                      .toArray()
+            }
       },
       User: {
             postedPhotos: parent => {
@@ -186,7 +232,11 @@ async function start() {
       server = new ApolloServer({
             typeDefs,
             resolvers,
-            context: { db },
+            context: async ({ req }) => {
+                  const githubToken = req.headers.authorization
+                  const currentUser = await db.collection('users').findOne({ githubToken })
+                  return { db, currentUser }
+            },
       });
 
       // add middleware to server

@@ -941,6 +941,60 @@ query liftDetails{
 }
 ```
 
+## 5 章終了時点でのクエリとミューテーション例
+
+フェイクユーザーを追加するミューテーション
+
+```cmd
+mutation  addFakeUsers {
+  addFakeUsers(count: 3) {
+    name
+  }
+}
+```
+
+レスポンス例
+
+```json
+{
+  "data": {
+    "addFakeUsers": [
+      {
+        "name": "Elias Hannula"
+      },
+      {
+        "name": "Eric Guevara"
+      },
+      {
+        "name": "Christopher Elliott"
+      }
+    ]
+  }
+}
+```
+
+ユーザー情報を取得するクエリ
+
+```cmd
+query currentUser {
+  me {
+    githubLogin
+    name
+    avatar
+  }
+}
+```
+
+レスポンス例
+
+```json
+{
+  "data": {
+    "me": null
+  }
+}
+```
+
 ## Apollo Server により GraphQL サーバーを構築する場合
 
 `npm i apollo-server graphql nodemon`
@@ -954,6 +1008,10 @@ query liftDetails{
 `npm run start`
 
 http://localhost:4000/playground
+
+playground の起動例
+
+<img src="./docs/assets/playground.png">
 
 ## mongoDB の起動方法
 
@@ -974,6 +1032,53 @@ http://localhost:4000/playground
 
 ` mongod --version`
 
+## MongoDB Shell の使い方
+
+ログイン方法  
+`mongo -u mongo -p --port 27017 --host 127.0.0.1`
+
+ユーザー新規作成方法(1 例)
+
+1. `mongo`
+2. `use admin`
+3. `db.createUser({user:"test", pwd:"test", roles:["root"]})`
+
+DB の確認  
+`show dbs;`
+
+```shell
+admin   0.000GB
+config  0.000GB
+local   0.000GB
+```
+
+DB の状態確認  
+`db.stats()`
+
+```shell
+{
+	"db" : "test",
+	"collections" : 0,
+	"views" : 0,
+	"objects" : 0,
+	"avgObjSize" : 0,
+	"dataSize" : 0,
+	"storageSize" : 0,
+	"indexes" : 0,
+	"indexSize" : 0,
+	"totalSize" : 0,
+	"scaleFactor" : 1,
+	"fsUsedSize" : 0,
+	"fsTotalSize" : 0,
+	"ok" : 1
+}
+```
+
+### .env ファイルに必要な設定
+
+1. DB ホスト ⇨ mongodb://127.0.0.1:27017/を設定しておく (デフォルト)
+2. GitHub で OAuth の設定をしておいてクライアント ID とクレデンシャルを設定しておく
+
 #### 参考文献
 
 1. <a href="https://www.oreilly.co.jp/books/9784873118932/">初めての GraphQL</a>
@@ -984,3 +1089,5 @@ http://localhost:4000/playground
 6. [Snowtooth API](http://snowtooth.moonhighway.com)
 7. [You must `await server.start()` before calling `server.applyMiddleware()`の解決方法](https://qiita.com/kajima/items/2405a44a2c6f14de7919)
 8. [MongoDB の公式サイト](https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-os-x/)
+9. [MongoDB 操作ガイド](https://www.wakuwakubank.com/posts/784-server-mongodb-introduction/)
+10. [ApolloClient の公式ドキュメント](https://www.apollographql.com/docs/react/get-started)
